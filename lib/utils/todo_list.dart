@@ -15,7 +15,7 @@ class TodoList extends StatelessWidget {
   final bool taskCompleted;
   final Function(bool?)? onChanged;
   final Function(BuildContext)? deleteFunction;
-  final VoidCallback? onTap; // 👈 NEW
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

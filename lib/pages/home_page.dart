@@ -16,6 +16,8 @@ class _HomePageState extends State<HomePage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   int _selectedIndex = 0;
+  String searchQuery = '';
+  String sortBy = 'Date';
 
   void _onItemTapped(int index) {
     setState(() {
@@ -104,52 +106,118 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('todos')
-            .where('userId', isEqualTo: user?.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+      body: Column(
+        children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: 'Search tasks...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+            ),
+          ),
 
-          final tasks = snapshot.data!.docs;
-
-          return ListView.builder(
-            itemCount: tasks.length,
-            itemBuilder: (context, index) {
-              final taskData = tasks[index];
-              final taskId = taskData.id;
-              final taskName = taskData['task'];
-              final taskCompleted = taskData['completed'];
-              final taskDescription = taskData['description'] ?? '';
-
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TodoDescriptionPage(
-                        title: taskName,
-                        description: taskDescription,
-                      ),
-                    ),
-                  );
-                },
-                child: TodoList(
-                  taskName: taskName,
-                  taskCompleted: taskCompleted,
-                  onChanged: (value) => toggleTask(taskId, taskCompleted),
-                  deleteFunction: (_) => deleteTask(taskId),
+          // Sorting dropdown
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text("Sort by: "),
+                DropdownButton<String>(
+                  value: sortBy,
+                  items: ['Alphabetical', 'Date'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      sortBy = newValue!;
+                    });
+                  },
                 ),
-              );
-            },
-          );
-        },
+              ],
+            ),
+          ),
+
+          // Task list
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('todos')
+                  .where('userId', isEqualTo: user?.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                final tasks = snapshot.data!.docs;
+
+                // Filter tasks based on search query
+                final filteredTasks = tasks.where((task) {
+                  final taskName = task['task'] as String;
+                  return taskName.toLowerCase().contains(searchQuery.toLowerCase());
+                }).toList();
+
+                // Sort tasks
+                if (sortBy == 'Alphabetical') {
+                  filteredTasks.sort((a, b) => a['task'].compareTo(b['task']));
+                } else if (sortBy == 'Date') {
+                  filteredTasks.sort((a, b) {
+                    final aDate = a['createdAt']?.toDate();
+                    final bDate = b['createdAt']?.toDate();
+                    return bDate!.compareTo(aDate!);
+                  });
+                }
+
+                return ListView.builder(
+                  itemCount: filteredTasks.length,
+                  itemBuilder: (context, index) {
+                    final taskData = filteredTasks[index];
+                    final taskId = taskData.id;
+                    final taskName = taskData['task'];
+                    final taskCompleted = taskData['completed'];
+                    final taskDescription = taskData['description'] ?? '';
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TodoDescriptionPage(
+                              title: taskName,
+                              description: taskDescription,
+                            ),
+                          ),
+                        );
+                      },
+                      child: TodoList(
+                        taskName: taskName,
+                        taskCompleted: taskCompleted,
+                        onChanged: (value) => toggleTask(taskId, taskCompleted),
+                        deleteFunction: (_) => deleteTask(taskId),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: saveNewTask,
-          child: const Icon(Icons.add),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: saveNewTask,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 

@@ -2,18 +2,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:simple_todo/pages/home_page.dart';
 import 'package:simple_todo/pages/login_page.dart';
 
 void main() async {
-  await dotenv.load(fileName: ".env"); // environment file init
+
 
   WidgetsFlutterBinding.ensureInitialized();
 
   if (kIsWeb) {
     await Firebase.initializeApp(
-      options: FirebaseOptions(
+      options: const FirebaseOptions(
           apiKey: dotenv.env['API_KEY']!,
           authDomain: dotenv.env['AUTH_DOMAIN']!,
           projectId: dotenv.env['PROJECT_ID']!,
