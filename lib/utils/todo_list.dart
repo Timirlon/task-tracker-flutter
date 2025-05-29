@@ -26,7 +26,7 @@ class TodoList extends StatelessWidget {
         right: 20,
         bottom: 0,
       ),
-      child: GestureDetector( // 👈 Wrap with GestureDetector
+      child: GestureDetector(
         onTap: onTap,
         child: Slidable(
           endActionPane: ActionPane(
